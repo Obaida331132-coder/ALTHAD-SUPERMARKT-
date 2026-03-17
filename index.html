@@ -2729,9 +2729,9 @@
                         <input type="text" id="productName" placeholder="مثال: جبنة بيضاء">
                     </div>
                     <div class="form-group">
-                        <label>الأيقونة / الصورة (يمكنك كتابة أي رمز من الكيبورد)</label>
-                        <input type="text" id="productIcon" placeholder="مثال: 🧀 أو 🥫 أو أي رمز" value="🛒" style="font-size: 1.5rem; text-align: center;">
-                        <small style="color: #666;">يمكنك إدخال أي أيقونة أو رمز من الكيبورد</small>
+                        <label>الأيقونة (اختياري - اتركه فارغاً إذا رفعت صورة)</label>
+                        <input type="text" id="productIcon" placeholder="مثال: 🧀 أو 🥫" value="" style="font-size: 1.5rem; text-align: center;">
+                        <small style="color: #666;">إذا رفعت صورة حقيقية، سيتم استخدامها بدلاً من الأيقونة</small>
                     </div>
                     <div class="form-group">
                         <label>خيارات البيع</label>
@@ -2756,7 +2756,7 @@
                         <input type="number" id="productDiscount" step="0.01">
                     </div>
                     <div class="form-group">
-                        <label>صور المنتج (اختياري - يمكن رفع صور)</label>
+                        <label>صور المنتج (اختياري - ارفع صور حقيقية)</label>
                         <div class="image-upload-options">
                             <div class="image-option" onclick="document.getElementById('galleryInput').click()"><i class="fas fa-images"></i><span>اختر من المعرض</span></div>
                             <div class="image-option" onclick="openCamera()"><i class="fas fa-camera"></i><span>التقط صورة</span></div>
@@ -2995,12 +2995,25 @@
                 const originalPrice = p.piecePrice || p.kiloPrice || p.cartonPrice;
                 const finalPrice = applyOpeningDiscount(originalPrice);
                 const isNew = productCreationTimes[p.id] && (Date.now() - productCreationTimes[p.id] < 24 * 60 * 60 * 1000);
+                // تحديد الصورة الرئيسية: أول صورة حقيقية إذا وجدت، وإلا الأيقونة
+                let mainImage = '🛒';
+                if (p.images && p.images.length > 0) {
+                    // البحث عن أول صورة حقيقية (تبدأ بـ data:)
+                    const realImage = p.images.find(img => img && img.startsWith && img.startsWith('data:'));
+                    if (realImage) {
+                        mainImage = `<img src="${realImage}">`;
+                    } else {
+                        // إذا لم نجد صورة حقيقية، نستخدم أول أيقونة
+                        mainImage = p.images[0] || '🛒';
+                    }
+                }
+                
                 html += `<div class="product-card" onclick="showProductDetail('${p.id}')">
                     <div class="edit-product-btn" onclick="event.stopPropagation(); editProductFromPage('${p.id}')"><i class="fas fa-edit"></i></div>
                     <div class="wishlist-btn-card ${isInWishlist(p.id)?'active':''}" onclick="event.stopPropagation(); toggleWishlist('${p.id}')"><i class="fas fa-heart"></i></div>
                     <div class="quick-view-icon" onclick="event.stopPropagation(); quickView('${p.id}')"><i class="fas fa-eye"></i></div>
                     ${isNew ? '<div class="new-badge">🆕 جديد</div>' : ''}
-                    <div class="product-image">${p.images && p.images[0] ? (p.images[0].startsWith('data:') ? `<img src="${p.images[0]}">` : `<div class="default-icon">${p.images[0]}</div>`) : '<div class="default-icon">🛒</div>'}</div>
+                    <div class="product-image">${mainImage}</div>
                     <div class="product-name">${p.name}</div>
                     <div class="product-rating">${'⭐'.repeat(Math.floor(p.rating||4))} (${p.rating||4})</div>
                     <div class="product-price">
@@ -3054,9 +3067,20 @@
             else wlist.forEach(p => {
                 const finalPrice = applyOpeningDiscount(p.discount || p.piecePrice || p.kiloPrice || p.cartonPrice);
                 const oldPrice = (p.discount || p.piecePrice || p.kiloPrice || p.cartonPrice);
+                // تحديد الصورة الرئيسية
+                let mainImage = '🛒';
+                if (p.images && p.images.length > 0) {
+                    const realImage = p.images.find(img => img && img.startsWith && img.startsWith('data:'));
+                    if (realImage) {
+                        mainImage = `<img src="${realImage}">`;
+                    } else {
+                        mainImage = p.images[0] || '🛒';
+                    }
+                }
+                
                 html += `<div class="product-card" onclick="showProductDetail('${p.id}')">
                     <div class="wishlist-btn-card active" onclick="event.stopPropagation(); toggleWishlist('${p.id}')"><i class="fas fa-heart"></i></div>
-                    <div class="product-image">${p.images && p.images[0] ? (p.images[0].startsWith('data:') ? `<img src="${p.images[0]}">` : `<div class="default-icon">${p.images[0]}</div>`) : '<div class="default-icon">🛒</div>'}</div>
+                    <div class="product-image">${mainImage}</div>
                     <div class="product-name">${p.name}</div>
                     <div class="product-price">
                         ${finalPrice.toFixed(2)} ر.س
@@ -3101,7 +3125,7 @@
                 const itemTotal = item.price * item.quantity;
                 total += itemTotal;
                 html += `<div class="cart-item">
-                    <div class="cart-item-image">${item.image ? (item.image.startsWith('data:') ? `<img src="${item.image}">` : item.image) : '🛒'}</div>
+                    <div class="cart-item-image">${item.image ? (item.image.startsWith && item.image.startsWith('data:') ? `<img src="${item.image}">` : item.image) : '🛒'}</div>
                     <div class="cart-item-details">
                         <div class="cart-item-name">${item.name}</div>
                         <div class="cart-item-price">${item.price.toFixed(2)} ر.س</div>
@@ -3182,8 +3206,19 @@
             const filtered = products.filter(p => p.name.includes(term));
             let html = '';
             filtered.slice(0,5).forEach(p => {
+                // تحديد الصورة الرئيسية للبحث
+                let imageHtml = '🛒';
+                if (p.images && p.images.length > 0) {
+                    const realImage = p.images.find(img => img && img.startsWith && img.startsWith('data:'));
+                    if (realImage) {
+                        imageHtml = `<img src="${realImage}">`;
+                    } else {
+                        imageHtml = p.images[0];
+                    }
+                }
+                
                 html += `<div class="search-result-item" onclick="showProductDetail('${p.id}')">
-                    <div class="search-result-image">${p.images && p.images[0] ? (p.images[0].startsWith('data:') ? `<img src="${p.images[0]}">` : p.images[0]) : '🛒'}</div>
+                    <div class="search-result-image">${imageHtml}</div>
                     <div class="search-result-info"><h4>${p.name}</h4><p>${p.piecePrice||p.kiloPrice||p.cartonPrice} ر.س</p></div>
                 </div>`;
             });
@@ -3337,7 +3372,7 @@
             
             let html = '';
             if (specialOfferData) {
-                html = `<div class="offer-card" style="background:linear-gradient(145deg, ${specialOfferData.color}, ${specialOfferData.color}dd); cursor: pointer;" onclick="showSpecialOfferDetails()">
+                html = `<div class="offer-card" style="background:linear-gradient(145deg, ${specialOfferData.color}, ${specialOfferData.color}dd); cursor: pointer;" onclick="addSpecialOfferToCart()">
                     <div class="offer-timer-small">⏰ لفترة محدودة</div>
                     <div style="font-size:3rem; text-align: center; animation: bounce 2s infinite;">${specialOfferData.icon}</div>
                     <div style="font-size:1.5rem; font-weight: 800; text-align: center;">${specialOfferData.title}</div>
@@ -3351,10 +3386,40 @@
             document.getElementById('offersGrid').innerHTML = html;
         }
 
+        // دالة جديدة: إضافة العرض الخاص إلى السلة
+        function addSpecialOfferToCart() {
+            if (!specialOfferData) return;
+            
+            // إنشاء كائن منتج مؤقت للعرض الخاص
+            const offerProduct = {
+                id: 'special-offer',
+                name: specialOfferData.title,
+                price: specialOfferData.price,
+                image: specialOfferData.icon,
+                desc: specialOfferData.details
+            };
+            
+            // إضافة المنتج إلى السلة
+            cart.push({ 
+                id: Date.now(), 
+                name: offerProduct.name + ' - عرض خاص', 
+                price: offerProduct.price, 
+                quantity: 1, 
+                image: offerProduct.icon 
+            });
+            
+            // تحديث السلة
+            updateCart();
+            
+            // فتح السلة لتأكيد الإضافة
+            openCart();
+            
+            showToast('✅ تم إضافة العرض الخاص إلى السلة');
+        }
+
         function showSpecialOfferDetails() {
-            if (specialOfferData) {
-                showToast(`${specialOfferData.title}\n${specialOfferData.details}`);
-            }
+            // تم تعديل هذه الدالة لتستخدم الدالة الجديدة addSpecialOfferToCart
+            addSpecialOfferToCart();
         }
 
         // رؤية سريعة
@@ -3550,10 +3615,21 @@
             let list = '';
             best.forEach(p => {
                 const finalPrice = applyOpeningDiscount(p.piecePrice || p.kiloPrice || p.cartonPrice);
+                // تحديد الصورة الرئيسية
+                let mainImage = '🛒';
+                if (p.images && p.images.length > 0) {
+                    const realImage = p.images.find(img => img && img.startsWith && img.startsWith('data:'));
+                    if (realImage) {
+                        mainImage = `<img src="${realImage}" style="width:50px;height:50px;">`;
+                    } else {
+                        mainImage = p.images[0];
+                    }
+                }
+                
                 list += `<div class="mini-product-card" onclick="showProductDetail('${p.id}')">
                     <div class="wishlist-icon" onclick="event.stopPropagation(); toggleWishlist('${p.id}')"><i class="fas ${isInWishlist(p.id)?'fa-heart':'fa-heart-o'}"></i></div>
                     <div class="quick-view-icon" onclick="event.stopPropagation(); quickView('${p.id}')"><i class="fas fa-eye"></i></div>
-                    <div class="product-image">${p.images && p.images[0] ? (p.images[0].startsWith('data:') ? `<img src="${p.images[0]}" style="width:50px;height:50px;">` : p.images[0]) : '🛒'}</div>
+                    <div class="product-image">${mainImage}</div>
                     <div class="product-name">${p.name}</div>
                     <div class="product-price">${finalPrice.toFixed(2)} ر.س</div>
                 </div>`;
@@ -3597,12 +3673,23 @@
                 const originalPrice = p.piecePrice || p.kiloPrice || p.cartonPrice;
                 const finalPrice = applyOpeningDiscount(originalPrice);
                 const isNew = window.productCreationTimes[p.id] && (Date.now() - window.productCreationTimes[p.id] < 24 * 60 * 60 * 1000);
+                // تحديد الصورة الرئيسية
+                let mainImage = '🛒';
+                if (p.images && p.images.length > 0) {
+                    const realImage = p.images.find(img => img && img.startsWith && img.startsWith('data:'));
+                    if (realImage) {
+                        mainImage = `<img src="${realImage}">`;
+                    } else {
+                        mainImage = `<div class="default-icon">${p.images[0]}</div>`;
+                    }
+                }
+                
                 html += `<div class="product-card" onclick="showProductDetail('${p.id}')">
                     <div class="edit-product-btn" onclick="event.stopPropagation(); editProductFromPage('${p.id}')"><i class="fas fa-edit"></i></div>
                     <div class="wishlist-btn-card ${isInWishlist(p.id)?'active':''}" onclick="event.stopPropagation(); toggleWishlist('${p.id}')"><i class="fas fa-heart"></i></div>
                     <div class="quick-view-icon" onclick="event.stopPropagation(); quickView('${p.id}')"><i class="fas fa-eye"></i></div>
                     ${isNew ? '<div class="new-badge">🆕 جديد</div>' : ''}
-                    <div class="product-image">${p.images && p.images[0] ? (p.images[0].startsWith('data:') ? `<img src="${p.images[0]}">` : `<div class="default-icon">${p.images[0]}</div>`) : '<div class="default-icon">🛒</div>'}</div>
+                    <div class="product-image">${mainImage}</div>
                     <div class="product-name">${p.name}</div>
                     <div class="product-rating">${'⭐'.repeat(Math.floor(p.rating||4))} (${p.rating||4})</div>
                     <div class="product-price">
@@ -3624,7 +3711,26 @@
             document.getElementById('productDetailPage').classList.add('active');
 
             let thumbnails = '';
-            if (p.images && p.images.length) p.images.forEach((img,i) => thumbnails += `<div class="thumbnail" onclick="changeMainImage(${i})">${img.startsWith('data:') ? `<img src="${img}">` : img}</div>`);
+            if (p.images && p.images.length) {
+                p.images.forEach((img,i) => {
+                    if (img && img.startsWith && img.startsWith('data:')) {
+                        thumbnails += `<div class="thumbnail" onclick="changeMainImage(${i})"><img src="${img}"></div>`;
+                    } else {
+                        thumbnails += `<div class="thumbnail" onclick="changeMainImage(${i})">${img}</div>`;
+                    }
+                });
+            }
+
+            // تحديد الصورة الرئيسية للمعرض
+            let mainImageHtml = '🛒';
+            if (p.images && p.images.length > 0) {
+                const realImage = p.images.find(img => img && img.startsWith && img.startsWith('data:'));
+                if (realImage) {
+                    mainImageHtml = `<img src="${realImage}">`;
+                } else {
+                    mainImageHtml = p.images[0];
+                }
+            }
 
             let opts = '';
             if (p.piecePrice) opts += `<div class="option-btn" onclick="selectProductOption('piece','${p.id}')" id="opt-piece-${p.id}"><div style="font-weight:700;">🔹 قطعة</div><div class="option-price">${applyOpeningDiscount(p.piecePrice).toFixed(2)} ر.س</div></div>`;
@@ -3636,12 +3742,23 @@
             let recommended = '';
             window.products.filter(prod => prod.id !== id && prod.category === p.category).slice(0,3).forEach(prod => {
                 const finalPrice = applyOpeningDiscount(prod.piecePrice || prod.kiloPrice || prod.cartonPrice);
-                recommended += `<div class="recommended-item" onclick="showProductDetail('${prod.id}')"><div class="product-image">${prod.images && prod.images[0] ? (prod.images[0].startsWith('data:') ? `<img src="${prod.images[0]}" style="width:40px;height:40px;">` : prod.images[0]) : '🛒'}</div><div class="product-name">${prod.name}</div><div class="product-price">${finalPrice.toFixed(2)} ر.س</div></div>`;
+                // تحديد صورة المنتج الموصى به
+                let prodImage = '🛒';
+                if (prod.images && prod.images.length > 0) {
+                    const realImg = prod.images.find(img => img && img.startsWith && img.startsWith('data:'));
+                    if (realImg) {
+                        prodImage = `<img src="${realImg}" style="width:40px;height:40px;">`;
+                    } else {
+                        prodImage = prod.images[0];
+                    }
+                }
+                
+                recommended += `<div class="recommended-item" onclick="showProductDetail('${prod.id}')"><div class="product-image">${prodImage}</div><div class="product-name">${prod.name}</div><div class="product-price">${finalPrice.toFixed(2)} ر.س</div></div>`;
             });
 
             document.getElementById('productDetailContainer').innerHTML = `
                 <div class="product-gallery">
-                    <div class="product-detail-image" id="mainImage">${p.images && p.images[0] ? (p.images[0].startsWith('data:') ? `<img src="${p.images[0]}">` : p.images[0]) : '🛒'}</div>
+                    <div class="product-detail-image" id="mainImage">${mainImageHtml}</div>
                     <div class="thumbnail-images">${thumbnails}</div>
                 </div>
                 <h2 class="product-detail-title">${p.name}</h2>
@@ -3717,8 +3834,15 @@
             else if (opt === 'carton' && p.cartonPrice) { price = applyOpeningDiscount(p.cartonPrice); name += ` - كرتونة (${p.cartonPieces} قطع)`; }
             else return showToast('❌ اختر خياراً', '❌');
             
+            // تحديد صورة المنتج للإضافة إلى السلة
+            let cartImage = p.images?.[0];
+            if (p.images && p.images.length > 0) {
+                const realImg = p.images.find(img => img && img.startsWith && img.startsWith('data:'));
+                if (realImg) cartImage = realImg;
+            }
+            
             for (let i = 0; i < qty; i++) {
-                cart.push({ id: Date.now() + i, name, price, quantity: 1, image: p.images?.[0] });
+                cart.push({ id: Date.now() + i, name, price, quantity: 1, image: cartImage });
             }
             updateCart();
             showToast(`✅ أضيف ${qty} ${qty > 1 ? 'قطع' : 'قطعة'} للسلة`);
@@ -3742,8 +3866,8 @@
             const name = document.getElementById('productName').value;
             if (!name || !cat) return showToast('❌ اختر القسم وأدخل اسم المنتج', '❌');
             
-            // الحصول على الأيقونة المخصصة من حقل الإدخال
-            const customIcon = document.getElementById('productIcon').value.trim() || '🛒';
+            // الحصول على الأيقونة المخصصة من حقل الإدخال (اختياري)
+            const customIcon = document.getElementById('productIcon').value.trim();
             
             const discount = document.getElementById('productDiscount').value ? parseFloat(document.getElementById('productDiscount').value) : null;
             const desc = document.getElementById('productDesc').value;
@@ -3758,11 +3882,19 @@
             if (sk) { kilo = parseFloat(document.getElementById('kiloPrice').value); if (!kilo) return showToast('أدخل سعر الكيلو', '❌'); }
             if (sc) { cartonP = parseInt(document.getElementById('cartonPieces').value); cartonPr = parseFloat(document.getElementById('cartonPrice').value); if (!cartonP || !cartonPr) return showToast('أدخل عدد القطع وسعر الكرتونة', '❌'); }
 
-            // دمج الأيقونة المخصصة مع الصور المرفوعة
+            // دمج الصور المرفوعة مع الأيقونة (إذا لم توجد صور حقيقية)
             let images = [];
-            if (customIcon) images.push(customIcon);
+            
+            // نضيف الصور المرفوعة أولاً (لأنها الأهم)
             if (window.productImages && window.productImages.length) {
-                images = [...images, ...window.productImages];
+                images = [...window.productImages];
+            }
+            
+            // إذا لم توجد صور مرفوعة، نضيف الأيقونة
+            if (images.length === 0 && customIcon) {
+                images.push(customIcon);
+            } else if (images.length === 0 && !customIcon) {
+                images.push('🛒'); // أيقونة افتراضية
             }
             
             const product = { 
@@ -3905,8 +4037,22 @@
                 if (p.piecePrice) opts.push('🔹');
                 if (p.kiloPrice) opts.push('⚖️');
                 if (p.cartonPrice) opts.push('📦');
+                
+                // تحديد الصورة لعرضها في القائمة
+                let itemImage = '';
+                if (p.images && p.images.length > 0) {
+                    const realImage = p.images.find(img => img && img.startsWith && img.startsWith('data:'));
+                    if (realImage) {
+                        itemImage = `<img class="item-image" src="${realImage}">`;
+                    } else {
+                        itemImage = `<span class="item-icon">${p.images[0]}</span>`;
+                    }
+                } else {
+                    itemImage = '<span class="item-icon">🛒</span>';
+                }
+                
                 html += `<div class="item-card">
-                    <div class="item-info">${p.images && p.images[0] ? (p.images[0].startsWith('data:') ? `<img class="item-image" src="${p.images[0]}">` : `<span class="item-icon">${p.images[0]}</span>`) : '<span class="item-icon">🛒</span>'}
+                    <div class="item-info">${itemImage}
                         <div><h4>${p.name}</h4><p>${p.piecePrice||p.kiloPrice||p.cartonPrice} ر.س ${opts.join(' ')}</p></div>
                     </div>
                     <div class="item-actions">
@@ -3925,7 +4071,17 @@
             if (!p) return;
             document.getElementById('productCategory').value = p.category;
             document.getElementById('productName').value = p.name;
-            document.getElementById('productIcon').value = p.images && p.images[0] && !p.images[0].startsWith('data:') ? p.images[0] : '🛒';
+            
+            // تعيين الأيقونة (إذا كانت موجودة وليست صورة)
+            if (p.images && p.images.length > 0) {
+                const hasRealImage = p.images.some(img => img && img.startsWith && img.startsWith('data:'));
+                if (!hasRealImage) {
+                    document.getElementById('productIcon').value = p.images[0] || '🛒';
+                } else {
+                    document.getElementById('productIcon').value = '🛒';
+                }
+            }
+            
             document.getElementById('productDiscount').value = p.discount || '';
             document.getElementById('productDesc').value = p.desc || '';
             document.getElementById('sellPieceCheckbox').checked = !!p.piecePrice;
@@ -3937,9 +4093,9 @@
             if (p.cartonPieces) document.getElementById('cartonPieces').value = p.cartonPieces;
             if (p.cartonPrice) document.getElementById('cartonPrice').value = p.cartonPrice;
             
-            // عرض الصور الموجودة
+            // عرض الصور الموجودة (فقط الصور الحقيقية)
             if (p.images && p.images.length) { 
-                window.productImages = p.images.filter(img => img.startsWith('data:')); 
+                window.productImages = p.images.filter(img => img && img.startsWith && img.startsWith('data:')); 
                 updateImagePreviews(); 
             }
             window.editingProductId = id;
@@ -3949,8 +4105,21 @@
         window.renderBestSellersSelection = function() {
             let html = '';
             window.products.forEach(p => {
+                // تحديد الصورة لعرضها في القائمة
+                let itemImage = '';
+                if (p.images && p.images.length > 0) {
+                    const realImage = p.images.find(img => img && img.startsWith && img.startsWith('data:'));
+                    if (realImage) {
+                        itemImage = `<img class="item-image" src="${realImage}">`;
+                    } else {
+                        itemImage = `<span class="item-icon">${p.images[0]}</span>`;
+                    }
+                } else {
+                    itemImage = '<span class="item-icon">🛒</span>';
+                }
+                
                 html += `<div class="item-card" onclick="toggleBestSeller('${p.id}')" style="cursor:pointer;">
-                    <div class="item-info">${p.images && p.images[0] ? (p.images[0].startsWith('data:') ? `<img class="item-image" src="${p.images[0]}">` : `<span class="item-icon">${p.images[0]}</span>`) : '<span class="item-icon">🛒</span>'}
+                    <div class="item-info">${itemImage}
                         <div><h4>${p.name}</h4><p>${p.piecePrice||p.kiloPrice||p.cartonPrice} ر.س</p></div>
                     </div>
                     <div style="font-size:1.8rem;">${p.isBestSeller ? '👑' : '⬜'}</div>
